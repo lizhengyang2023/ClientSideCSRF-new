@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户端请求劫持攻击演示系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+            color: #856404;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .attack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .attack-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .attack-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .attack-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .attack-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .attack-card .method {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px 5px;
+            transition: background 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+
+        .instructions h2 {
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            line-height: 2;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ 客户端请求劫持攻击演示系统</h1>
+        <p class="subtitle">Client-Side Request Forgery (CSRF) Attack Demonstration</p>
+
+        <div class="warning">
+            <strong>⚠️ 警告</strong>
+            本系统仅用于教育目的，展示Web安全漏洞。请勿在生产环境或未经授权的系统上使用这些技术。
+        </div>
+
+        <div class="instructions">
+            <h2>📋 实验说明</h2>
+            <ol>
+                <li><strong>受害者服务器</strong>：运行在 <code>http://127.0.0.1:3000</code>，模拟正常的Web应用</li>
+                <li><strong>攻击者服务器</strong>：运行在 <code>http://127.0.0.1:3001</code>，包含恶意攻击页面</li>
+                <li>首先在浏览器中打开<strong>受害者页面</strong>（模拟用户已登录状态）</li>
+                <li>然后在同一浏览器中打开<strong>攻击者页面</strong>（模拟用户访问恶意网站）</li>
+                <li>观察攻击者页面如何劫持受害者的请求</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <a href="http://127.0.0.1:3000/victim.html" class="btn btn-success" target="_blank">🌐 打开受害者页面</a>
+            <a href="http://127.0.0.1:3001/attacker.html" class="btn" target="_blank">⚔️ 打开攻击者页面</a>
+        </div>
+
+        <h2 style="margin-top: 40px; margin-bottom: 20px;">🔍 攻击案例列表</h2>
+        
+        <div class="attack-grid">
+            <div class="attack-card">
+                <h3>1. 表单自动提交攻击</h3>
+                <p>利用隐藏表单自动提交POST请求，执行转账、修改邮箱等敏感操作。</p>
+                <span class="method">method: form.submit()</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>2. 图片标签GET请求劫持</h3>
+                <p>利用img标签的src属性发送GET请求，触发用户操作或泄露信息。</p>
+                <span class="method">method: &lt;img src&gt;</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>3. Fetch API请求劫持</h3>
+                <p>使用现代Fetch API发送跨域请求，收集用户数据或执行操作。</p>
+                <span class="method">method: fetch()</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>4. sendBeacon API数据收集</h3>
+                <p>利用sendBeacon API在页面关闭时发送数据，常用于用户行为追踪劫持。</p>
+                <span class="method">method: navigator.sendBeacon()</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>5. JSONP回调劫持</h3>
+                <p>劫持JSONP回调函数，窃取跨域返回的敏感数据。</p>
+                <span class="method">method: &lt;script&gt; + callback</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>6. iframe跨域请求劫持</h3>
+                <p>利用iframe加载受害者页面，配合表单提交进行请求劫持。</p>
+                <span class="method">method: iframe + form</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>7. XMLHttpRequest劫持</h3>
+                <p>使用传统XHR对象发送AJAX请求，执行后台操作。</p>
+                <span class="method">method: XMLHttpRequest</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>8. Link标签CSS导入劫持</h3>
+                <p>利用link标签导入CSS资源时发送请求，可用于探测和攻击。</p>
+                <span class="method">method: &lt;link rel="stylesheet"&gt;</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>9. WebSocket连接劫持</h3>
+                <p>建立WebSocket连接发送消息，模拟实时通信场景下的数据劫持。</p>
+                <span class="method">method: WebSocket</span>
+            </div>
+
+            <div class="attack-card">
+                <h3>10. EventSource/SSE劫持</h3>
+                <p>利用Server-Sent Events建立连接，在实时数据流场景下进行劫持。</p>
+                <span class="method">method: EventSource</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>📝 技术说明</h3>
+            <p style="margin-top: 10px; line-height: 1.8; color: #666;">
+                本演示系统展示了10种常见的客户端请求劫持攻击方式。这些攻击利用了浏览器的同源策略限制不足，
+                当用户访问恶意网站时，在用户不知情的情况下，向受害者服务器发送请求。每种攻击都有其特定的应用场景：
+                sendBeacon常用于页面关闭时的数据收集，JSONP用于跨域数据获取，WebSocket用于实时通信等。
+                所有攻击都在本地环境（127.0.0.1的不同端口）下进行演示，确保安全可控。
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

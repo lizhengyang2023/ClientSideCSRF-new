@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>受害者页面 - 正常Web应用</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #2d3436;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .user-info h2 {
+            color: #0984e3;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #636e72;
+        }
+
+        .info-value {
+            color: #2d3436;
+        }
+
+        .actions {
+            margin-top: 30px;
+        }
+
+        .actions h2 {
+            color: #0984e3;
+            margin-bottom: 20px;
+        }
+
+        .action-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #636e72;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .btn {
+            background: #0984e3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #0770c4;
+        }
+
+        .btn-danger {
+            background: #d63031;
+        }
+
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+
+        .log {
+            margin-top: 30px;
+            background: #2d3436;
+            color: #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log h2 {
+            color: #74b9ff;
+            margin-bottom: 15px;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #636e72;
+            font-size: 0.9em;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #00b894;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .refresh-btn {
+            background: #00b894;
+            float: right;
+        }
+
+        .refresh-btn:hover {
+            background: #00a085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 银行账户管理系统</h1>
+        <p style="text-align: center; color: #636e72; margin-bottom: 30px;">
+            欢迎，您已登录！<span class="status-indicator"></span>已认证
+        </p>
+
+        <div class="user-info">
+            <h2>📊 账户信息</h2>
+            <div class="info-item">
+                <span class="info-label">账户余额：</span>
+                <span class="info-value" id="balance">¥1,000.00</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">邮箱地址：</span>
+                <span class="info-value" id="email">user@example.com</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">登录状态：</span>
+                <span class="info-value">已登录</span>
+            </div>
+            <button class="btn refresh-btn" onclick="refreshUserInfo()">刷新信息</button>
+            <div style="clear: both;"></div>
+        </div>
+
+        <div class="actions">
+            <h2>⚙️ 账户操作</h2>
+
+            <div class="action-form">
+                <h3>💰 转账</h3>
+                <form id="transferForm">
+                    <div class="form-group">
+                        <label>收款人：</label>
+                        <input type="text" id="transferTo" placeholder="输入收款人账户" required>
+                    </div>
+                    <div class="form-group">
+                        <label>金额：</label>
+                        <input type="number" id="transferAmount" placeholder="输入转账金额" min="1" required>
+                    </div>
+                    <button type="submit" class="btn">确认转账</button>
+                </form>
+            </div>
+
+            <div class="action-form">
+                <h3>📧 更新邮箱</h3>
+                <form id="emailForm">
+                    <div class="form-group">
+                        <label>新邮箱地址：</label>
+                        <input type="email" id="newEmail" placeholder="输入新邮箱地址" required>
+                    </div>
+                    <button type="submit" class="btn">更新邮箱</button>
+                </form>
+            </div>
+
+            <div class="action-form">
+                <h3>🗑️ 删除账户</h3>
+                <p style="color: #d63031; margin-bottom: 15px;">⚠️ 此操作不可恢复！</p>
+                <button type="button" class="btn btn-danger" onclick="deleteAccount()">删除账户</button>
+            </div>
+        </div>
+
+        <div class="log">
+            <h2>📋 操作日志</h2>
+            <div id="logContainer">
+                <div class="log-entry">[系统] 页面已加载，用户已登录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟已登录用户，存储Cookie（用于演示）
+        document.cookie = "session=authenticated_user_token_12345; path=/";
+        
+        let userBalance = 1000;
+        let userEmail = 'user@example.com';
+
+        // 刷新用户信息
+        async function refreshUserInfo() {
+            try {
+                const response = await fetch('/api/user/info');
+                const data = await response.json();
+                document.getElementById('balance').textContent = `¥${data.balance.toFixed(2)}`;
+                document.getElementById('email').textContent = data.email;
+                userBalance = data.balance;
+                userEmail = data.email;
+                addLog('用户信息已刷新');
+            } catch (error) {
+                addLog('[错误] 无法获取用户信息: ' + error.message);
+            }
+        }
+
+        // 转账表单提交
+        document.getElementById('transferForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const to = document.getElementById('transferTo').value;
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+
+            try {
+                const response = await fetch('/api/transfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ to, amount })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog(`[转账成功] 向 ${to} 转账 ¥${amount}`);
+                    document.getElementById('transferForm').reset();
+                    refreshUserInfo();
+                }
+            } catch (error) {
+                addLog('[错误] 转账失败: ' + error.message);
+            }
+        });
+
+        // 更新邮箱表单提交
+        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('newEmail').value;
+
+            try {
+                const response = await fetch('/api/user/update-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog(`[邮箱更新] ${email}`);
+                    document.getElementById('emailForm').reset();
+                    refreshUserInfo();
+                }
+            } catch (error) {
+                addLog('[错误] 邮箱更新失败: ' + error.message);
+            }
+        });
+
+        // 删除账户
+        async function deleteAccount() {
+            if (!confirm('确定要删除账户吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog('[账户删除] 删除请求已发送');
+                }
+            } catch (error) {
+                addLog('[错误] 删除账户失败: ' + error.message);
+            }
+        }
+
+        // 添加日志
+        function addLog(message) {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+        }
+
+        // 页面加载时获取用户信息
+        window.addEventListener('load', () => {
+            refreshUserInfo();
+            addLog('[提示] 请保持此页面打开，然后访问攻击者页面查看攻击效果');
+        });
+
+        // 监听页面可见性变化（用于sendBeacon演示）
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                addLog('[系统] 页面已隐藏或关闭');
+            }
+        });
+    </script>
+</body>
+</html>
+
