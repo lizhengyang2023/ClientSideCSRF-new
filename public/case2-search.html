@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case2 · Location 导航搜索</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/js/common.js" defer></script>
+    <script src="/js/case2.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>Case2 · location.href 搜索与跳转</h1>
+      <p>输入关键字或完整链接，感受 location assign / replace 在 CSRF 与钓鱼场景中的差别。</p>
+      <div class="token-badge">Case2 Token：<span data-token>获取中...</span></div>
+    </header>
+    <main class="container stack">
+      <section class="section stack">
+        <div class="two-col">
+          <div class="form-row">
+            <label for="engine">搜索引擎</label>
+            <select id="engine" class="input">
+              <option value="https://www.google.com/search?q=">Google</option>
+              <option value="https://www.bing.com/search?q=">Bing</option>
+              <option value="https://duckduckgo.com/?q=">DuckDuckGo</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="query">搜索关键字</label>
+            <input id="query" class="input" placeholder="输入关键字" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="assignSearch">location.assign 搜索</button>
+          <button id="replaceSearch">location.replace 搜索</button>
+        </div>
+      </section>
+      <section class="section stack">
+        <h2>直接跳转任意链接</h2>
+        <div class="form-row">
+          <label for="directUrl">输入目标 URL（可模拟恶意站点）</label>
+          <input id="directUrl" class="input" placeholder="https://example.com/pay" />
+        </div>
+        <div class="actions">
+          <button id="openSelf">在当前标签打开 (href)</button>
+          <button id="openNew">新标签打开 (window.open)</button>
+        </div>
+        <div class="muted">
+          提示：location.assign 会保留返回栈；location.replace 则无法回退，适合隐藏跳转痕迹。
+        </div>
+      </section>
+      <section class="section stack">
+        <h2>事件日志</h2>
+        <div id="case2Log" class="log-panel"></div>
+      </section>
+    </main>
+  </body>
+</html>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case4 · Push + SSE + WebSocket 聊天室</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/js/common.js" defer></script>
+    <script src="/js/case4.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>Case4 · 推送三件套即时聊天</h1>
+      <p>
+        综合展示 PushManager（模拟通知）、Server-Sent Events 与 WebSocket，全双工与单向推送的差异一目了然。
+      </p>
+      <div class="token-badge">Case4 Token：<span data-token>获取中...</span></div>
+    </header>
+    <main class="container stack">
+      <section class="section stack">
+        <div class="chat-area">
+          <div id="messages" class="messages"></div>
+          <div class="two-col">
+            <input id="nickname" class="input" placeholder="输入昵称" value="访客" />
+            <input id="chatInput" class="input" placeholder="输入消息，回车发送" />
+          </div>
+          <div class="actions">
+            <button id="sendBtn">发送 (WebSocket)</button>
+            <button id="simulatePush">模拟 Push 通知</button>
+            <button id="triggerBroadcast">触发 SSE 系统广播</button>
+          </div>
+        </div>
+      </section>
+      <section class="section stack">
+        <h2>实时事件日志</h2>
+        <div id="case4Log" class="log-panel"></div>
+      </section>
+    </main>
+  </body>
+</html>
+

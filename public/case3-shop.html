@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case3 · fetch + sendBeacon 购物场景</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/js/common.js" defer></script>
+    <script src="/js/case3.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>Case3 · fetch 购物 & sendBeacon 上报</h1>
+      <p>拉取商品列表，模拟加入购物车；在关闭或切换页面时通过 sendBeacon 上报用户行为。</p>
+      <div class="token-badge">Case3 Token：<span data-token>获取中...</span></div>
+    </header>
+    <main class="container stack">
+      <section class="section stack">
+        <div class="stack">
+          <div class="tag">实时库存（fetch API）</div>
+          <div id="productList" class="products"></div>
+        </div>
+        <div class="stack">
+          <div class="tag">购物车</div>
+          <div id="cartSummary" class="list-item">尚未添加商品</div>
+        </div>
+      </section>
+      <section class="section stack">
+        <h2>sendBeacon 回执</h2>
+        <p class="muted">
+          当你关闭页面、刷新或切换标签时，系统会触发 navigator.sendBeacon 将购物车摘要上报给服务器。
+        </p>
+        <div id="case3Log" class="log-panel"></div>
+      </section>
+    </main>
+  </body>
+</html>
+

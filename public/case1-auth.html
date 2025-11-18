@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case1 · 第三方登录窗口操作</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/js/common.js" defer></script>
+    <script src="/js/case1.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>Case1 · window.open 第三方登录</h1>
+      <p>自由编辑认证参数并通过 window.open 打开新窗口，观察可控参数如何影响认证流程。</p>
+      <div class="token-badge">Case1 Token：<span data-token>获取中...</span></div>
+    </header>
+    <main class="container">
+      <section class="section stack">
+        <div class="two-col">
+          <div class="form-row">
+            <label for="provider">认证提供商</label>
+            <select id="provider" class="input">
+              <option value="github">GitHub</option>
+              <option value="google">Google</option>
+              <option value="wechat">微信</option>
+              <option value="custom">自定义</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="clientId">Client ID</label>
+            <input id="clientId" class="input" value="demo-client-id" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-row">
+            <label for="redirect">Redirect URI</label>
+            <input id="redirect" class="input" value="https://demo-app.local/callback" />
+          </div>
+          <div class="form-row">
+            <label for="scope">Scope（空格分隔）</label>
+            <input id="scope" class="input" value="profile email repo" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="state">State（可模拟被篡改）</label>
+          <input id="state" class="input" value="secure-random-state" />
+        </div>
+        <div class="actions">
+          <button id="previewBtn">预览授权 URL</button>
+          <button id="openBtn">打开认证窗口（window.open）</button>
+        </div>
+        <textarea id="preview" class="input" rows="3" readonly></textarea>
+      </section>
+      <section class="section stack">
+        <h2>事件日志</h2>
+        <div id="case1Log" class="log-panel"></div>
+      </section>
+    </main>
+  </body>
+</html>
+
