@@ -246,7 +246,7 @@
 
         // 刷新用户信息
         async function refreshUserInfo() {
-            try {
+            try {// Fetch API
                 const response = await fetch('/api/user/info');
                 const data = await response.json();
                 document.getElementById('balance').textContent = `¥${data.balance.toFixed(2)}`;
@@ -265,7 +265,7 @@
             const to = document.getElementById('transferTo').value;
             const amount = parseFloat(document.getElementById('transferAmount').value);
 
-            try {
+            try {// Fetch API
                 const response = await fetch('/api/transfer', {
                     method: 'POST',
                     headers: {
