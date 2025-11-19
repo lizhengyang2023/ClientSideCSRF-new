@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     appendLog(`location.href 即将跳转到：${url}`);
     setTimeout(() => {
-      location.href = url;
+      location.href = url; // 攻击者可以控制url，从而控制跳转
     }, 800);
   });
 

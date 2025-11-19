@@ -38,6 +38,7 @@ const mockProducts = [
 ];
 
 const recentBeacons = [];
+const stolenCookies = []; // 存储攻击者窃取的 cookie
 
 const getOrCreateToken = (caseId) => {
   if (!sessions.has(caseId)) {
@@ -94,6 +95,29 @@ app.get('/api/beacon/logs', (req, res) => {
   res.json({
     count: recentBeacons.length,
     logs: recentBeacons
+  });
+});
+
+// 攻击者后台：接收窃取的 cookie
+app.post('/api/attacker/steal', (req, res) => {
+  const payload = {
+    ...req.body,
+    receivedAt: new Date().toISOString(),
+    ip: req.ip || req.connection.remoteAddress
+  };
+  stolenCookies.push(payload);
+  if (stolenCookies.length > 100) {
+    stolenCookies.shift();
+  }
+  console.log('[⚠️ 攻击者窃取 Cookie]', payload);
+  res.json({ success: true, message: 'Cookie 已接收' });
+});
+
+// 攻击者后台：查看窃取的 cookie 列表
+app.get('/api/attacker/stolen', (req, res) => {
+  res.json({
+    count: stolenCookies.length,
+    cookies: stolenCookies
   });
 });
 
@@ -191,4 +215,6 @@ wss.on('connection', (socket, req) => {
 
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Attacker page at http://localhost:8080/attacker-index.html`)
+  console.log(`Attackers can steal cookies at http://localhost:${PORT}/api/attacker/stolen`);
 });

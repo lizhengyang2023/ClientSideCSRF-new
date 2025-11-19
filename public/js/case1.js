@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('openBtn').addEventListener('click', () => {
     const url = buildAuthUrl();
     const features = 'width=520,height=640,noopener=yes';
-    const opened = window.open(url, 'oauthWindow', features);
+    const opened = window.open(url, 'oauthWindow', features); // 攻击者可以控制url，从而控制认证流程
     if (opened) {
       appendLog(`已使用 window.open 打开新窗口：${url}`);
     } else {

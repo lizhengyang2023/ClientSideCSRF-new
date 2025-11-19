@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>攻击者控制台 - CSRF Cookie 窃取演示</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .attacker-header {
+        background: linear-gradient(135deg, #965c5c, #991b1b);
+        color: white;
+        padding: 2rem 1rem;
+        text-align: center;
+      }
+      .attacker-header h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+      }
+      .attacker-header p {
+        margin: 0.8rem auto 0;
+        max-width: 640px;
+        opacity: 0.95;
+      }
+      .warning-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.2);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 1rem;
+      }
+      .card.danger {
+        border-color: #dc2626;
+        box-shadow: 0 20px 50px rgba(220, 38, 38, 0.15);
+      }
+      .card.danger h2 {
+        color: #dc2626;
+      }
+      .p {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="attacker-header">
+      <h1>😈 攻击者控制台</h1>
+      <p class="p">
+        通过四个不同的攻击向量，演示如何利用客户端可控的 URL 参数窃取受害者的 Cookie Token。
+      </p>
+      <div class="warning-badge">
+        ⚠️ 仅用于安全研究演示，请勿用于非法用途
+      </div>
+    </header>
+    <main class="container">
+      <section class="grid">
+        <article class="card danger">
+          <h2>Case1 · window.open() 劫持</h2>
+          <p>
+            利用第三方登录页面中 window.open() 方法的 URL 参数可控漏洞，通过恶意重定向页面窃取 cookie。
+          </p>
+          <a href="/attacker-case1.html">进入攻击页面</a>
+        </article>
+        <article class="card danger">
+          <h2>Case2 · Location 导航劫持</h2>
+          <p>
+            利用搜索引擎页面中 location.href 或 location.assign() 的 URL 可控漏洞，通过恶意页面窃取 cookie。
+          </p>
+          <a href="/attacker-case2.html">进入攻击页面</a>
+        </article>
+        <article class="card danger">
+          <h2>Case3 · Fetch/Beacon 劫持</h2>
+          <p>
+            利用购物页面中 fetch 或 sendBeacon 的目标 URL 可控漏洞，将 cookie 发送到攻击者服务器。
+          </p>
+          <a href="/attacker-case3.html">进入攻击页面</a>
+        </article>
+        <article class="card danger">
+          <h2>Case4 · WebSocket/SSE 劫持</h2>
+          <p>
+            利用聊天应用中 WebSocket 或 EventSource 的连接 URL 可控漏洞，在连接建立时窃取 cookie。
+          </p>
+          <a href="/attacker-case4.html">进入攻击页面</a>
+        </article>
+      </section>
+      <section class="section" style="margin-top: 2rem;">
+        <h2>📊 攻击日志查看</h2>
+        <p class="muted">查看已窃取的所有 Cookie 信息</p>
+        <button onclick="viewStolenCookies()">查看窃取的 Cookie</button>
+        <div id="stolenLog" class="log-panel" style="margin-top: 1rem; display: none;"></div>
+      </section>
+    </main>
+    <script>
+      async function viewStolenCookies() {
+        const logPanel = document.getElementById('stolenLog');
+        logPanel.style.display = 'block';
+        logPanel.textContent = '正在加载...';
+        try {
+          const res = await fetch('/api/attacker/stolen');
+          const data = await res.json();
+          if (data.count === 0) {
+            logPanel.textContent = '暂无窃取的 Cookie 数据';
+          } else {
+            logPanel.textContent = JSON.stringify(data.cookies, null, 2);
+          }
+        } catch (err) {
+          logPanel.textContent = `加载失败: ${err.message}`;
+        }
+      }
+    </script>
+  </body>
+</html>
+
